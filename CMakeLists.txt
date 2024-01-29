@@ -2,13 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(adbd LANGUAGES C)
 
 
-set(BFDEV_SOURCE_PATH ${PROJECT_SOURCE_DIR}/src)
-
-add_subdirectory(src/bfdev)
-include_directories(${PROJECT_SOURCE_DIR}/src/bfdev/include)
-include_directories(${PROJECT_BINARY_DIR}/src/bfdev/generated)
-include_directories(${PROJECT_SOURCE_DIR}/src)
-
+include(cmake/bfdev.cmake)
 
 file(GLOB HEADERS
     ${PROJECT_SOURCE_DIR}/include/*.h
