@@ -16,8 +16,43 @@ bfdev_list_head_t  xdbd_posted_accept_events;
 static unsigned  xdbd_timer_resolution;
 #define DEFAULT_CONNECTIONS  512
 
+
 static void xdbd_event_accept(xdbd_event_t *ev) {
-    printf("hello world");
+    xdbd_connection_t *lc, *c;
+    xdbd_listening_t *ls;
+    xdbd_sockaddr_t sa;
+    socklen_t          socklen;
+    xdbd_socket_t s;
+    if (ev->timeout) {
+        ev->timeout = 0;
+    }
+
+    ev->ready = 0;
+
+    lc = ev->data;
+    ls = lc->listening;
+
+    socklen = sizeof(xdbd_sockaddr_t);
+
+    s = accept(lc->fd,  &sa.sockaddr, &socklen);
+    if (s == (xdbd_socket_t) -1) {
+        //FIXME: add some check
+        return;
+    }
+
+    c = xdbd_get_connection(ls->xdbd, s);
+    if (c == NULL) {
+        return;
+    }
+
+    //code: init this new c
+
+    ls->handler(c);
+    return;
+}
+
+void example_lisen_handler(xdbd_connection_t *c) {
+    printf("hello world\n");
 }
 
 static xdbd_listening_t *xdbd_push_adb_default_listen(xdbd_t *xdbd) {
@@ -38,7 +73,8 @@ static xdbd_listening_t *xdbd_push_adb_default_listen(xdbd_t *xdbd) {
         return NULL;
     }
 
-    ls->handler = NULL;
+    ls->xdbd = xdbd;
+    ls->handler = example_lisen_handler;
     return ls;
 }
 

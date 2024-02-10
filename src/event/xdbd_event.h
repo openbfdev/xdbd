@@ -18,6 +18,7 @@ struct xdbd_event_s {
     unsigned closed:1;
     unsigned accepted:1;
     unsigned posted:1;
+    unsigned timeout:1;
 
 };
 

@@ -17,6 +17,9 @@ struct xdbd_listening_s {
 
     unsigned backlog;
     unsigned listen:1;
+
+    //connection_t and event_t have to memzero .only this
+    xdbd_t *xdbd;
 };
 
 struct xdbd_connection_s {
