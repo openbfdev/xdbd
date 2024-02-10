@@ -5,8 +5,16 @@
 #include <connection.h>
 #include <xdbd_pool.h>
 
+static void usage() {
+
+}
+
 static int xdbd_get_options(int argc, char *const *argv) {
     //FIXME: get options
+    return XDBD_OK;
+}
+
+static int xdbd_worker_init(xdbd_t *xdbd) {
     return XDBD_OK;
 }
 
@@ -27,17 +35,11 @@ static xdbd_t *xdbd_init() {
 
     xdbd->pool = pool;
 
-    //FIXME: prepare conf
-
     if (xdbd_init_event(xdbd) != XDBD_OK) {
         xdbd_destroy_pool(pool);
         return NULL;
     }
 
-    if (xdbd_connection_init(xdbd) != XDBD_OK) {
-        xdbd_destroy_pool(pool);
-        return NULL;
-    }
 
     return xdbd;
 }

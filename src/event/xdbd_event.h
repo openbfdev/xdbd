@@ -1,18 +1,25 @@
 #ifndef __XDBD_EVENT__H__
 #define __XDBD_EVENT__H__
+#include "bfdev/list.h"
 #include <xdbd.h>
 
 #define XDBD_INVALID_INDEX  0xd0d0d0d0
 
+typedef void (*xdbd_event_handler_pt)(xdbd_event_t *ev);
+
 struct xdbd_event_s {
     void *data;
     int index;
+    xdbd_event_handler_pt handler;
 
+    bfdev_list_head_t list;
     unsigned write:1;
     unsigned ready:1;
-};
+    unsigned closed:1;
+    unsigned accepted:1;
+    unsigned posted:1;
 
-typedef void (*xdbd_event_handler_pt)(xdbd_event_t *ev);
+};
 
 typedef struct xdbd_event_actions_s {
     int  (*add)(xdbd_event_t *ev, int event, unsigned flags);
@@ -38,6 +45,19 @@ typedef struct xdbd_event_actions_s {
 #define XDBD_TIMER_INFINITE  (xdbd_msec_t) -1
 
 extern xdbd_event_actions_t xdbd_event_actions;
+extern bfdev_list_head_t  xdbd_posted_accept_events;
+
+#define xdbd_post_event(ev, list)                                                 \
+                                                                                  \
+    if (!(ev)->posted) {                                                          \
+        (ev)->posted = 1;                                                         \
+        bfdev_list_add_prev(list, &(ev)->list);                               \
+    }
+
+#define xdbd_delete_posted_event(ev)                                           \
+                                                                              \
+    (ev)->posted = 0;                                                         \
+    bfdev_list_del(&(ev)->list);
 
 
 #if (XDBD_HAVE_EPOLL) && !(XDBD_HAVE_EPOLLRDHUP)

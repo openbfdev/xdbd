@@ -30,6 +30,25 @@ set(
     ${PROJECT_SOURCE_DIR}/src/core/
 )
 
+set(BFDEV_ASAN true)
+
+if(BFDEV_ASAN)
+    set(CMAKE_C_FLAGS
+        "${CMAKE_C_FLAGS} \
+         -fsanitize=address \
+         -fsanitize=undefined \
+         -fsanitize-recover=all \
+         -fno-omit-frame-pointer \
+         -fno-stack-protector"
+    )
+    if(NOT APPLE)
+        set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} \
+             -fsanitize=leak"
+        )
+    endif()
+endif()
+
 include_directories(${XADB_INCLUDES})
 
 add_executable(adbd ${SRCS})

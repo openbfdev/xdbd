@@ -81,7 +81,7 @@ static int xdbd_select_add_event(xdbd_event_t *ev, int event, unsigned flags) {
         FD_SET(c->fd, &master_write_fd_set);
     }
 
-    if (max_fd != -1) {
+    if (max_fd != -1 && max_fd < c->fd) {
         max_fd = c->fd;
     }
 
@@ -128,6 +128,7 @@ static int xdbd_select_del_event(xdbd_event_t *ev, int event, unsigned flags) {
 static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned flags) {
     xdbd_connection_t *c;
     int i = 0, ready, nready, err, found;
+    bfdev_list_head_t *list;
     /* struct timeval     tv, *tp; */
     xdbd_event_t *ev;
     if (max_fd == -1) {
@@ -173,7 +174,8 @@ static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned 
                 found = 1;
             }
         }
-         /*read event*/
+
+        /*read event*/
         if (!ev->write) {
             if (FD_ISSET(c->fd, &work_read_fd_set)) {
                 found = 1;
@@ -182,6 +184,10 @@ static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned 
 
         if (found) {
             ev->ready = 1;
+
+            list = &xdbd_posted_accept_events;
+
+            xdbd_post_event(ev,  list);
             nready++;
         }
     }
