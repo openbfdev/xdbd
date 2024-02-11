@@ -118,6 +118,12 @@ static void xdbd_event_accept(xdbd_event_t *ev) {
         return;
     }
 
+    if (xdbd_nonblocking(s) == -1) {
+        bfdev_log_err("xdbd_nonblocking error");
+        xdbd_close_accepted_connection(c);
+        return;
+    }
+
     xdbd_memcpy(c->sockaddr, &sa, socklen);
 
     c->socklen = socklen;

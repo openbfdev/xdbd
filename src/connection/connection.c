@@ -3,7 +3,13 @@
 #include <xdbd.h>
 #include <connection.h>
 #include <xdbd_event.h>
+
+/*
+FIXME: remove this
+*/
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 xdbd_listening_t *xdbd_create_listening(xdbd_t *xdbd, struct sockaddr *sockaddr, socklen_t socklen) {
     xdbd_listening_t *ls;
@@ -85,6 +91,15 @@ int xdbd_open_listening_sockets(xdbd_t *xdbd) {
 
         if (s ==  (xdbd_socket_t) -1) {
             //FIXME: some check here
+            return XDBD_ERR;
+        }
+
+        if (xdbd_nonblocking(s) == -1) {
+            bfdev_log_err("xdbd_nonblocking error\n");
+
+            if (xdbd_close_socket(s) == -1) {
+                bfdev_log_err("xdbd_close_socket error");
+            }
             return XDBD_ERR;
         }
 

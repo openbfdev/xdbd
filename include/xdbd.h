@@ -7,6 +7,9 @@
 #include <bfdev/allocpool.h>
 #include <xdbd_config.h>
 #include <netinet/in.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #define XDBD_OK 0
 #define XDBD_ERR -1
 
@@ -28,6 +31,8 @@ typedef union {
     struct sockaddr_un        sockaddr_un;
 #endif
 } xdbd_sockaddr_t;
+
+#define xdbd_nonblocking(s)  fcntl(s, F_SETFL, fcntl(s, F_GETFL) | O_NONBLOCK)
 
 typedef struct adb_command_s adb_command_t;
 typedef struct adb_packet_s  adb_packet_t;
