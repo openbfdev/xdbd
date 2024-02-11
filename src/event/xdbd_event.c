@@ -222,7 +222,6 @@ int xdbd_init_event(xdbd_t *xdbd) {
 
 void
 xdbd_event_process_posted(xdbd_t *xdbd, bfdev_list_head_t *posted) {
-    bfdev_list_head_t *list;
     xdbd_event_t *ev, *tmp;
 
 
