@@ -2,7 +2,6 @@
 #define __CONNECTION__H__
 
 #include "xdbd_pool.h"
-#include <sys/_types/_off_t.h>
 #include <xdbd.h>
 #include <sys/socket.h>
 
