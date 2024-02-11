@@ -44,6 +44,7 @@ xdbd_connection_t *xdbd_get_connection(xdbd_t *xdbd, xdbd_socket_t s) {
         return NULL;
     }
 
+    bfdev_log_debug("xdbd_get_connection get c->fd %d, c %p\n", s, c);
     xdbd->free_connections = c->data;
     xdbd->free_connection_n--;
 
@@ -75,6 +76,37 @@ void xdbd_free_connection(xdbd_t *xdbd, xdbd_connection_t *c) {
     xdbd->free_connection_n++;
 }
 
+void xdbd_close_connection(xdbd_t *xdbd, xdbd_connection_t *c) {
+    xdbd_socket_t fd;
+    xdbd_err_t err;
+    if (c->fd == (xdbd_socket_t) -1) {
+        return;
+    }
+
+    if (c->read->active) {
+        xdbd_del_event(c->read, XDBD_READ_EVENT, XDBD_CLOSE_EVENT);
+    }
+
+    if (c->write->active) {
+        xdbd_del_event(c->write, XDBD_WRITE_EVENT, XDBD_CLOSE_EVENT);
+    }
+
+    c->read->closed = 1;
+    c->write->closed = 1;
+
+    bfdev_log_debug("xdbd_close_connection close c->fd %d, c %p\n", c->fd, c);
+
+    xdbd_free_connection(xdbd, c);
+
+    fd = c->fd;
+    c->fd = (xdbd_socket_t) -1;
+
+    if (xdbd_close_socket(fd) == -1) {
+        err = xdbd_socket_errno;
+
+        bfdev_log_debug("xdbd_close_socket error");
+    }
+}
 
 int xdbd_open_listening_sockets(xdbd_t *xdbd) {
     xdbd_listening_t *ls;
@@ -121,4 +153,103 @@ int xdbd_open_listening_sockets(xdbd_t *xdbd) {
     }
 
     return XDBD_OK;
+}
+
+ssize_t xdbd_unix_recv(xdbd_connection_t *c, u_char *buf, size_t size) {
+    ssize_t       n;
+    xdbd_err_t     err;
+    xdbd_event_t  *rev;
+
+    rev = c->read;
+    do {
+        n = recv(c->fd, buf, size, 0);
+
+        // bfdev_log_debug("recv: fd:%d %z of %uz", c->fd, n, size);
+
+        if (n == 0) {
+            rev->ready = 0;
+            rev->eof = 1;
+
+            return 0;
+        }
+
+        if (n > 0) {
+/*
+            if ((size_t) n < size
+                && !(xdbd_event_flags & XDBD_USE_GREEDY_EVENT))
+            {
+                rev->ready = 0;
+            }
+*/
+            return n;
+        }
+
+        err = xdbd_socket_errno;
+
+        if (err == XDBD_EAGAIN || err == XDBD_EINTR) {
+            bfdev_log_debug("recv() not ready");
+            n = XDBD_AGAIN;
+
+        } else {
+            // n = xdbd_connection_error(c, err, "recv() failed");
+            bfdev_log_debug("recv() failed");
+            break;
+        }
+
+    } while (err == XDBD_EINTR);
+
+    rev->ready = 0;
+
+    if (n == XDBD_ERR) {
+        rev->error = 1;
+    }
+
+    return n;
+}
+
+ssize_t xdbd_unix_send(xdbd_connection_t *c, u_char *buf, size_t size) {
+    ssize_t       n;
+    xdbd_err_t     err;
+    xdbd_event_t  *wev;
+
+    wev = c->write;
+
+    for ( ;; ) {
+        n = send(c->fd, buf, size, 0);
+
+        // bfdev_log_debug("send: fd:%d %z of %uz", c->fd, n, size);
+
+        if (n > 0) {
+            if (n < (ssize_t) size) {
+                wev->ready = 0;
+            }
+
+            c->sent += n;
+
+            return n;
+        }
+
+        err = xdbd_socket_errno;
+
+        if (n == 0) {
+            bfdev_log_err("send() returned zero");
+            wev->ready = 0;
+            return n;
+        }
+
+        if (err == XDBD_EAGAIN || err == XDBD_EINTR) {
+            wev->ready = 0;
+
+            bfdev_log_debug("send() not ready");
+
+            if (err == XDBD_EAGAIN) {
+                return XDBD_AGAIN;
+            }
+
+        } else {
+            wev->error = 1;
+            // (void) xdbd_connection_error(c, err, "send() failed");
+            return XDBD_ERR;
+        }
+    }
 }

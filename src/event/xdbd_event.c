@@ -10,6 +10,7 @@
 #include <connection.h>
 #include <unistd.h>
 #include <string.h>
+#include <xdbd_adb.h>
 
 extern xdbd_event_module_t xdbd_select_module;
 
@@ -45,7 +46,6 @@ xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags) {
                 return XDBD_OK;
             }
 
-            return XDBD_ERR;
         }
     }
 
@@ -54,6 +54,30 @@ xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags) {
 
 int
 xdbd_handle_write_event(xdbd_event_t *wev, unsigned flags) {
+    if (xdbd_event_flags & XDBD_USE_LEVEL_EVENT) {
+
+        /* select, poll, /dev/poll */
+
+        if (!wev->active && !wev->ready) {
+            if (xdbd_add_event(wev, XDBD_WRITE_EVENT, XDBD_LEVEL_EVENT)
+                == XDBD_ERR)
+            {
+                return XDBD_ERR;
+            }
+
+            return XDBD_OK;
+        }
+
+        if (wev->active && wev->ready) {
+            if (xdbd_del_event(wev, XDBD_WRITE_EVENT, XDBD_LEVEL_EVENT)
+                == XDBD_ERR)
+            {
+                return XDBD_ERR;
+            }
+
+            return XDBD_OK;
+        }
+    }
 
     return XDBD_OK;
 }
@@ -131,36 +155,25 @@ static void xdbd_event_accept(xdbd_event_t *ev) {
     c->local_sockaddr = ls->sockaddr;
     c->local_socklen = ls->socklen;
 
+/*FIXME: cross platform for windows maybe??*/
+    c->send = xdbd_unix_send;
+    c->recv = xdbd_unix_recv;
+
     rev = c->read;
     wev = c->write;
 
     wev->ready = 1;
 
+
     ls->handler(c);
-    return;
-}
-
-static void xdbd_adb_handler(xdbd_event_t *ev) {
-    bfdev_log_debug("xdbd_adb_handler\n");
-    xdbd_connection_t *c;
-    size_t n;
-    c = ev->data;
-    char buf[1024];
-
-    n = read(c->fd, buf, sizeof(buf));
-
-    printf("%s", (char *)buf);
-}
-
-static void xdbd_empty_handler(xdbd_event_t *ev) {
     return;
 }
 
 void xdbd_adb_init_connection(xdbd_connection_t *c) {
     bfdev_log_debug("xdbd_adb_init_connection\n");
 
-    c->read->handler = xdbd_adb_handler;
-    c->write->handler = xdbd_empty_handler;
+    c->read->handler = xdbd_adb_wait_apacket_handler;
+    c->write->handler = xdbd_adb_empty_handler;
 
 /*
     if (c->read->ready) {
@@ -169,7 +182,7 @@ void xdbd_adb_init_connection(xdbd_connection_t *c) {
     }
 */
     if (xdbd_handle_read_event(c->read, 0) != XDBD_OK) {
-        //FIXME: close connection
+        xdbd_adb_close_connection(c);
         return;
     }
 }

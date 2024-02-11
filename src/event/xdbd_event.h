@@ -20,7 +20,8 @@ struct xdbd_event_s {
     unsigned posted:1;
     unsigned timeout:1;
     unsigned active:1;
-
+    unsigned eof:1;
+    unsigned error:1;
 };
 
 typedef struct xdbd_event_actions_s {

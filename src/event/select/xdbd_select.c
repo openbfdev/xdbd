@@ -1,4 +1,5 @@
 #include "bfdev/log.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <bfdev/allocator.h>
 #include <assert.h>
@@ -72,6 +73,7 @@ static int xdbd_select_add_event(xdbd_event_t *ev, int event, unsigned flags) {
         return XDBD_OK;
     }
 
+    bfdev_log_debug("select add event c->fd %d\n", c->fd);
     if (event == XDBD_READ_EVENT) {
         FD_SET(c->fd, &master_read_fd_set);
     }
@@ -84,6 +86,7 @@ static int xdbd_select_add_event(xdbd_event_t *ev, int event, unsigned flags) {
         max_fd = c->fd;
     }
 
+    ev->active = 1;
     /*save this event to event_index*/
     event_index[nevents] = ev;
     ev->index = nevents;
@@ -101,6 +104,7 @@ static int xdbd_select_del_event(xdbd_event_t *ev, int event, unsigned flags) {
         return XDBD_ERR;
     }
 
+    bfdev_log_debug("select delete event c->fd %d\n", c->fd);
     if (event == XDBD_READ_EVENT) {
         FD_CLR(c->fd, &master_read_fd_set);
     }
@@ -124,12 +128,58 @@ static int xdbd_select_del_event(xdbd_event_t *ev, int event, unsigned flags) {
     return XDBD_OK;
 }
 
+void xdbd_select_repair_fd_sets(xdbd_t *xdbd) {
+    int           n;
+    socklen_t     len;
+    xdbd_err_t     err;
+    xdbd_socket_t  s;
+
+    for (s = 0; s <= max_fd; s++) {
+
+        if (FD_ISSET(s, &master_read_fd_set) == 0) {
+            continue;
+        }
+
+        len = sizeof(int);
+
+        if (getsockopt(s, SOL_SOCKET, SO_TYPE, &n, &len) == -1) {
+            err = xdbd_socket_errno;
+
+            bfdev_log_err("invalid descriptor #%d in read fd_set\n", s);
+
+            FD_CLR(s, &master_read_fd_set);
+        }
+    }
+
+    for (s = 0; s <= max_fd; s++) {
+
+        if (FD_ISSET(s, &master_write_fd_set) == 0) {
+            continue;
+        }
+
+        len = sizeof(int);
+
+        if (getsockopt(s, SOL_SOCKET, SO_TYPE, &n, &len) == -1) {
+            err = xdbd_socket_errno;
+
+            bfdev_log_err("invalid descriptor #%d in write fd_set", s);
+
+            FD_CLR(s, &master_write_fd_set);
+        }
+    }
+
+    max_fd = -1;
+
+}
+
+
 static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned flags) {
     xdbd_connection_t *c;
-    int i = 0, ready, nready, err, found;
+    int i = 0, ready, nready, found;
     bfdev_list_head_t *list;
     /* struct timeval     tv, *tp; */
     xdbd_event_t *ev;
+    xdbd_err_t err;
     if (max_fd == -1) {
         for (i = 0; i < nevents; i++) {
             c = event_index[i]->data;
@@ -146,10 +196,26 @@ static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned 
 
     ready = select(max_fd + 1, &work_read_fd_set, &work_write_fd_set, NULL, NULL);
 
-    err = (ready == -1) ? errno : 0;
+    err = (ready == -1) ? xdbd_errno : 0;
 
     if (err) {
-        //process something. now skip it
+
+        if (err == XDBD_EINTR) {
+
+            // level = XDBD_LOG_INFO;
+
+        } else {
+            // level = XDBD_LOG_ALERT;
+        }
+
+        bfdev_log_err("select() failed\n");
+
+        if (err == XDBD_EBADF) {
+            xdbd_select_repair_fd_sets(xdbd);
+        }
+
+        // perror("");
+        return XDBD_ERR;
     }
 
     if (ready == 0) {
@@ -193,9 +259,10 @@ static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned 
 
     if (ready != nready) {
         //TODO: need fix
-        bfdev_log_warn("ready != nready");
-        return XDBD_ERR;
+        bfdev_log_warn("ready != nready, ready %d, nready %d", ready, nready);
+        xdbd_select_repair_fd_sets(xdbd);
     }
+
     return XDBD_OK;
 }
 

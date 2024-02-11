@@ -13,6 +13,7 @@ set(SRCS
     ${HEADERS}
     ${PROJECT_SOURCE_DIR}/src/xdbd.c
     ${PROJECT_SOURCE_DIR}/src/adb/adb.c
+    ${PROJECT_SOURCE_DIR}/src/adb/xdbd_adb.c
     ${PROJECT_SOURCE_DIR}/src/adb/command.c
     ${PROJECT_SOURCE_DIR}/src/adb/packet.c
     ${PROJECT_SOURCE_DIR}/src/connection/connection.c
