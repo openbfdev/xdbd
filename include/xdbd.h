@@ -14,15 +14,17 @@
 
 /*socket*/
 #define xdbd_socket          socket
+#define xdbd_close_socket    close
+
 typedef int xdbd_socket_t;
 
 typedef union {
     struct sockaddr           sockaddr;
     struct sockaddr_in        sockaddr_in;
-#if (NGX_HAVE_INET6)
+#if (XDBD_HAVE_INET6)
     struct sockaddr_in6       sockaddr_in6;
 #endif
-#if (NGX_HAVE_UNIX_DOMAIN)
+#if (XDBD_HAVE_UNIX_DOMAIN)
     struct sockaddr_un        sockaddr_un;
 #endif
 } xdbd_sockaddr_t;
@@ -47,7 +49,6 @@ struct xdbd_s {
 
     bfdev_array_t listening;
     xdbd_pool_t *pool;
-    // struct bfdev_allocpool pool;
 };
 
 #define xdbd_memzero(buf, n)       (void) memset(buf, 0, n)

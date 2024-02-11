@@ -1,3 +1,4 @@
+#include "bfdev/log.h"
 #include <stdlib.h>
 #include <bfdev/allocator.h>
 #include <assert.h>
@@ -40,8 +41,6 @@ xdbd_event_module_t xdbd_select_module = {
     },
 };
 
-unsigned              ngx_event_flags;
-xdbd_event_actions_t  xdbd_event_actions;
 
 static int xdbd_select_init(xdbd_t *xdbd, xdbd_msec_t timer) {
     assert(event_index == NULL);
@@ -56,7 +55,7 @@ static int xdbd_select_init(xdbd_t *xdbd, xdbd_msec_t timer) {
         return XDBD_ERR;
     }
 
-    ngx_event_flags = XDBD_USE_LEVEL_EVENT;
+    xdbd_event_flags = XDBD_USE_LEVEL_EVENT;
     max_fd = -1;
 
     //register this module.
@@ -185,7 +184,7 @@ static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned 
         if (found) {
             ev->ready = 1;
 
-            list = &xdbd_posted_accept_events;
+            list = ev->accepted ? &xdbd_posted_accept_events : &xdbd_posted_events;
 
             xdbd_post_event(ev,  list);
             nready++;
@@ -194,6 +193,7 @@ static int xdbd_select_process_events(xdbd_t *xdbd, xdbd_msec_t timer, unsigned 
 
     if (ready != nready) {
         //TODO: need fix
+        bfdev_log_warn("ready != nready");
         return XDBD_ERR;
     }
     return XDBD_OK;

@@ -1,3 +1,4 @@
+#include <bfdev/log.h>
 #include <bfdev/array.h>
 #include <xdbd.h>
 #include <connection.h>
@@ -62,6 +63,13 @@ xdbd_connection_t *xdbd_get_connection(xdbd_t *xdbd, xdbd_socket_t s) {
     return c;
 }
 
+void xdbd_free_connection(xdbd_t *xdbd, xdbd_connection_t *c) {
+    c->data = xdbd->free_connections;
+    xdbd->free_connections = c;
+    xdbd->free_connection_n++;
+}
+
+
 int xdbd_open_listening_sockets(xdbd_t *xdbd) {
     xdbd_listening_t *ls;
     int i;
@@ -76,17 +84,19 @@ int xdbd_open_listening_sockets(xdbd_t *xdbd) {
         s = xdbd_socket(ls[i].sockaddr->sa_family, ls[i].type, 0);
 
         if (s ==  (xdbd_socket_t) -1) {
-
+            //FIXME: some check here
             return XDBD_ERR;
         }
 
         if (bind(s, ls[i].sockaddr, ls[i].socklen) == -1) {
             //FIXME: some check here
+            bfdev_log_info("bind error\n");
             continue;
         }
 
         if (listen(s, ls[i].backlog) == -1) {
             //FIXME: some check here
+            bfdev_log_info("listen error\n");
             continue;
         }
 

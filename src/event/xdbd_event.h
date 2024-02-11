@@ -19,6 +19,7 @@ struct xdbd_event_s {
     unsigned accepted:1;
     unsigned posted:1;
     unsigned timeout:1;
+    unsigned active:1;
 
 };
 
@@ -47,6 +48,7 @@ typedef struct xdbd_event_actions_s {
 
 extern xdbd_event_actions_t xdbd_event_actions;
 extern bfdev_list_head_t  xdbd_posted_accept_events;
+extern bfdev_list_head_t  xdbd_posted_events;
 
 #define xdbd_post_event(ev, list)                                                 \
                                                                                   \
@@ -143,6 +145,36 @@ extern bfdev_list_head_t  xdbd_posted_accept_events;
 
 #endif /* XDBD_HAVE_KQUEUE */
 
+/*
+ * The event filter is deleted just before the closing file.
+ * Has no meaning for select and poll.
+ * kqueue, epoll, eventport:         allows to avoid explicit delete,
+ *                                   because filter automatically is deleted
+ *                                   on file close,
+ *
+ * /dev/poll:                        we need to flush POLLREMOVE event
+ *                                   before closing file.
+ */
+#define XDBD_CLOSE_EVENT    1
+
+/*
+ * disable temporarily event filter, this may avoid locks
+ * in kernel malloc()/free(): kqueue.
+ */
+#define XDBD_DISABLE_EVENT  2
+
+/*
+ * event must be passed to kernel right now, do not wait until batch processing.
+ */
+#define XDBD_FLUSH_EVENT    4
+
+
+/* these flags have a meaning only for kqueue */
+#define XDBD_LOWAT_EVENT    0
+#define XDBD_VNODE_EVENT    0
+
+
+
 #define xdbd_process_events   xdbd_event_actions.process_events
 #define xdbd_done_events      xdbd_event_actions.done
 
@@ -160,5 +192,8 @@ typedef struct xdbd_event_module_s {
 
 int xdbd_init_event(xdbd_t *xdbd);
 void xdbd_process_events_and_timers(xdbd_t *xdbd);
+
+extern unsigned              xdbd_event_flags;
+extern xdbd_event_actions_t  xdbd_event_actions;
 
 #endif  /*__XDBD_EVENT__H__*/

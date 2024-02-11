@@ -1,6 +1,7 @@
 #ifndef __CONNECTION__H__
 #define __CONNECTION__H__
 
+#include "xdbd_pool.h"
 #include <xdbd.h>
 #include <sys/socket.h>
 
@@ -23,9 +24,18 @@ struct xdbd_listening_s {
 };
 
 struct xdbd_connection_s {
+    xdbd_pool_t *pool;
     xdbd_socket_t fd;
     xdbd_event_t *read;
     xdbd_event_t *write;
+
+    struct sockaddr    *sockaddr;
+    socklen_t           socklen;
+
+    struct sockaddr    *local_sockaddr;
+    socklen_t           local_socklen;
+
+
     void *data;
     xdbd_listening_t *listening;
 };
@@ -33,6 +43,8 @@ struct xdbd_connection_s {
 #define ADB_CONNECTION_DEFAULT_PORT 5555
 
 xdbd_connection_t *xdbd_get_connection(xdbd_t *xdbd, xdbd_socket_t s);
+void xdbd_free_connection(xdbd_t *xdbd, xdbd_connection_t *c);
+
 xdbd_listening_t *xdbd_create_listening(xdbd_t *xdbd, struct sockaddr *sockaddr, socklen_t socklen);
 int xdbd_open_listening_sockets(xdbd_t *xdbd);
 

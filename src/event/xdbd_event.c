@@ -1,3 +1,4 @@
+#include <bfdev/log.h>
 #include <bfdev/list.h>
 #include <assert.h>
 #include <bfdev/array.h>
@@ -7,15 +8,75 @@
 #include <xdbd_event.h>
 #include <xdbd.h>
 #include <connection.h>
-
+#include <unistd.h>
+#include <string.h>
 
 extern xdbd_event_module_t xdbd_select_module;
-bfdev_list_head_t  xdbd_posted_accept_events;
 
+
+unsigned              xdbd_event_flags;
+xdbd_event_actions_t  xdbd_event_actions;
+
+bfdev_list_head_t  xdbd_posted_accept_events;
+bfdev_list_head_t  xdbd_posted_events;
 
 static unsigned  xdbd_timer_resolution;
 #define DEFAULT_CONNECTIONS  512
 
+int
+xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags) {
+    /* select, poll, /dev/poll */
+    if (xdbd_event_flags & XDBD_USE_LEVEL_EVENT) {
+        if (!rev->active && !rev->ready) {
+
+            if (xdbd_add_event(rev, XDBD_READ_EVENT, XDBD_LEVEL_EVENT)
+                == XDBD_ERR)
+            {
+                return XDBD_ERR;
+            }
+
+            if (rev->active && (rev->ready || (flags & XDBD_CLOSE_EVENT))) {
+                if (xdbd_del_event(rev, XDBD_READ_EVENT, XDBD_LEVEL_EVENT | flags)
+                    == XDBD_ERR)
+                {
+                    return XDBD_ERR;
+                }
+
+                return XDBD_OK;
+            }
+
+            return XDBD_ERR;
+        }
+    }
+
+    return XDBD_OK;
+}
+
+int
+xdbd_handle_write_event(xdbd_event_t *wev, unsigned flags) {
+
+    return XDBD_OK;
+}
+
+
+static void
+xdbd_close_accepted_connection(xdbd_connection_t *c) {
+    xdbd_socket_t s;
+
+    xdbd_free_connection(c->listening->xdbd, c);
+
+    s = c->fd;
+    c->fd = (xdbd_socket_t)-1;
+
+    if (xdbd_close_socket(s) == (xdbd_socket_t) -1) {
+        bfdev_log_err("xdbd_close_socket close error");
+    }
+
+    if (c->pool) {
+        xdbd_destroy_pool(c->pool);
+    }
+
+}
 
 static void xdbd_event_accept(xdbd_event_t *ev) {
     xdbd_connection_t *lc, *c;
@@ -23,6 +84,7 @@ static void xdbd_event_accept(xdbd_event_t *ev) {
     xdbd_sockaddr_t sa;
     socklen_t          socklen;
     xdbd_socket_t s;
+    xdbd_event_t       *rev, *wev;
     if (ev->timeout) {
         ev->timeout = 0;
     }
@@ -45,14 +107,65 @@ static void xdbd_event_accept(xdbd_event_t *ev) {
         return;
     }
 
-    //code: init this new c
+    c->pool = xdbd_create_pool();
+    if (c->pool == NULL) {
+        return;
+    }
+
+    c->sockaddr = xdbd_palloc(c->pool, socklen);
+    if (c->sockaddr == NULL) {
+        xdbd_close_accepted_connection(c);
+        return;
+    }
+
+    xdbd_memcpy(c->sockaddr, &sa, socklen);
+
+    c->socklen = socklen;
+    c->listening = ls;
+    c->local_sockaddr = ls->sockaddr;
+    c->local_socklen = ls->socklen;
+
+    rev = c->read;
+    wev = c->write;
+
+    wev->ready = 1;
 
     ls->handler(c);
     return;
 }
 
-void example_lisen_handler(xdbd_connection_t *c) {
-    printf("hello world\n");
+static void xdbd_adb_handler(xdbd_event_t *ev) {
+    bfdev_log_debug("xdbd_adb_handler\n");
+    xdbd_connection_t *c;
+    size_t n;
+    c = ev->data;
+    char buf[1024];
+
+    n = read(c->fd, buf, sizeof(buf));
+
+    printf("%s", (char *)buf);
+}
+
+static void xdbd_empty_handler(xdbd_event_t *ev) {
+    return;
+}
+
+void xdbd_adb_init_connection(xdbd_connection_t *c) {
+    bfdev_log_debug("xdbd_adb_init_connection\n");
+
+    c->read->handler = xdbd_adb_handler;
+    c->write->handler = xdbd_empty_handler;
+
+/*
+    if (c->read->ready) {
+        c->read->handler(c->read);
+        return;
+    }
+*/
+    if (xdbd_handle_read_event(c->read, 0) != XDBD_OK) {
+        //FIXME: close connection
+        return;
+    }
 }
 
 static xdbd_listening_t *xdbd_push_adb_default_listen(xdbd_t *xdbd) {
@@ -74,7 +187,7 @@ static xdbd_listening_t *xdbd_push_adb_default_listen(xdbd_t *xdbd) {
     }
 
     ls->xdbd = xdbd;
-    ls->handler = example_lisen_handler;
+    ls->handler = xdbd_adb_init_connection;
     return ls;
 }
 
@@ -124,8 +237,8 @@ static int xdbd_event_init_connections(xdbd_t *xdbd) {
         return XDBD_ERR;
     }
 
-
     bfdev_list_head_init(&xdbd_posted_accept_events);
+    bfdev_list_head_init(&xdbd_posted_events);
 
     xdbd->connections = xdbd_palloc(xdbd->pool, sizeof(xdbd_connection_t) * xdbd->connection_n);
     if (xdbd->connections == NULL) {
@@ -236,4 +349,6 @@ void xdbd_process_events_and_timers(xdbd_t *xdbd) {
     (void)xdbd_process_events(xdbd, XDBD_TIMER_INFINITE, 0);
 
     xdbd_event_process_posted(xdbd, &xdbd_posted_accept_events);
+
+    xdbd_event_process_posted(xdbd, &xdbd_posted_events);
 }
