@@ -1,3 +1,4 @@
+#include "xdbd_pool.h"
 #include <bfdev/log.h>
 #include <bfdev/array.h>
 #include <xdbd.h>
@@ -21,6 +22,11 @@ xdbd_listening_t *xdbd_create_listening(xdbd_t *xdbd, struct sockaddr *sockaddr,
     }
 
     xdbd_memzero(ls, sizeof(xdbd_listening_t));
+
+    sa = xdbd_palloc(xdbd->pool, socklen);
+    if (sa == NULL) {
+        return NULL;
+    }
 
     xdbd_memcpy(sa, sockaddr, socklen);
 
