@@ -22,7 +22,7 @@ void *xdbd_palloc(xdbd_pool_t *pool, unsigned size) {
         return NULL;
     }
 
-    node->buf = bfdev_malloc(NULL, size);
+    node->buf = bfdev_zalloc(NULL, size);
     if (node->buf == NULL) {
         bfdev_free(NULL, node);
         return NULL;
