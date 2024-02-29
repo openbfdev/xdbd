@@ -194,6 +194,8 @@ typedef struct xdbd_event_module_s {
 int xdbd_init_event(xdbd_t *xdbd);
 void xdbd_process_events_and_timers(xdbd_t *xdbd);
 
+int xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags);
+int xdbd_handle_write_event(xdbd_event_t *wev, unsigned flags);
 extern unsigned              xdbd_event_flags;
 extern xdbd_event_actions_t  xdbd_event_actions;
 

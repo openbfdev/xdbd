@@ -25,6 +25,7 @@ struct xdbd_listening_s {
 
 struct xdbd_connection_s {
     xdbd_pool_t *pool;
+    xdbd_pool_t *temp_pool;
     xdbd_socket_t fd;
     xdbd_event_t *read;
     xdbd_event_t *write;
@@ -44,7 +45,9 @@ struct xdbd_connection_s {
 
     off_t sent;
 
+    xdbd_buf_t *buffer;
     unsigned destroyed:1;
+    unsigned timeout:1;
 };
 
 #define ADB_CONNECTION_DEFAULT_PORT 5555

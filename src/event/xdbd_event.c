@@ -24,8 +24,7 @@ bfdev_list_head_t  xdbd_posted_events;
 static unsigned  xdbd_timer_resolution;
 #define DEFAULT_CONNECTIONS  512
 
-int
-xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags) {
+int xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags) {
     /* select, poll, /dev/poll */
     if (xdbd_event_flags & XDBD_USE_LEVEL_EVENT) {
         if (!rev->active && !rev->ready) {
@@ -52,8 +51,7 @@ xdbd_handle_read_event(xdbd_event_t *rev, unsigned flags) {
     return XDBD_OK;
 }
 
-int
-xdbd_handle_write_event(xdbd_event_t *wev, unsigned flags) {
+int xdbd_handle_write_event(xdbd_event_t *wev, unsigned flags) {
     if (xdbd_event_flags & XDBD_USE_LEVEL_EVENT) {
 
         /* select, poll, /dev/poll */
@@ -100,6 +98,9 @@ xdbd_close_accepted_connection(xdbd_connection_t *c) {
         xdbd_destroy_pool(c->pool);
     }
 
+    if (c->temp_pool) {
+        xdbd_destroy_pool(c->temp_pool);
+    }
 }
 
 static void xdbd_event_accept(xdbd_event_t *ev) {
@@ -133,6 +134,11 @@ static void xdbd_event_accept(xdbd_event_t *ev) {
 
     c->pool = xdbd_create_pool();
     if (c->pool == NULL) {
+        return;
+    }
+
+    c->temp_pool = xdbd_create_pool();
+    if (c->temp_pool == NULL) {
         return;
     }
 
@@ -289,15 +295,13 @@ static int xdbd_event_init_connections(xdbd_t *xdbd) {
     i = xdbd->connection_n;
     next = NULL;
 
-    do {
-        i--;
-
+    while (i--) {
         c[i].data = next;
         c[i].read = &xdbd->read_events[i];
         c[i].write = &xdbd->write_events[i];
         c[i].fd = (xdbd_socket_t) -1;
         next = &c[i];
-    } while (i);
+    }
 
     xdbd->free_connections = next;
     xdbd->free_connection_n = xdbd->connection_n;

@@ -4,7 +4,24 @@
 #include <stdbool.h>
 #include <xdbd.h>
 
+typedef struct adb_command_s adb_command_t;
+typedef struct adb_pcmd_s adb_pcmd_t;
+typedef struct xdbd_adb_header_s  xdbd_adb_header_t;
+typedef struct xdbd_adb_packet_s  xdbd_adb_packet_t;
+typedef struct xdbd_adb_request_s xdbd_adb_request_t;
 // https://android.googlesource.com/platform/packages/modules/adb/+/master/protocol.txt
+
+/* AUTH packets first argument */
+/* Request */
+#define ADB_AUTH_TOKEN         1
+/* Response */
+#define ADB_AUTH_SIGNATURE     2
+#define ADB_AUTH_RSAPUBLICKEY  3
+
+#define ADB_VERSION_MIN 0x01000000
+#define ADB_VERSION_SKIP_CHECKSUM 0x01000001
+#define ADB_VERSION 0x01000001
+
 
 enum TransportType {
     kTransportUsb,

@@ -23,12 +23,10 @@
 
 #define xdbd_msec_t unsigned
 
-typedef struct adb_command_s adb_command_t;
-typedef struct adb_packet_s  adb_packet_t;
 typedef struct xdbd_connection_s  xdbd_connection_t;
 typedef struct xdbd_listening_s  xdbd_listening_t;
 typedef struct xdbd_event_s xdbd_event_t;
-typedef struct adb_pcmd_s adb_pcmd_t;
+typedef struct xdbd_buf_s xdbd_buf_t;
 
 typedef struct xdbd_s xdbd_t;
 
@@ -49,6 +47,7 @@ struct xdbd_s {
 #define xdbd_memcpy(dst, src, n)   (void) memcpy(dst, src, n)
 #define xdbd_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
 
+#define xdbd_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
 
 /*socket*/
 #define xdbd_socket          socket
