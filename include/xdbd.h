@@ -27,7 +27,7 @@ typedef struct xdbd_connection_s  xdbd_connection_t;
 typedef struct xdbd_listening_s  xdbd_listening_t;
 typedef struct xdbd_event_s xdbd_event_t;
 typedef struct xdbd_buf_s xdbd_buf_t;
-
+typedef struct xdbd_timer_s xdbd_timer_t;
 typedef struct xdbd_s xdbd_t;
 
 struct xdbd_s {
