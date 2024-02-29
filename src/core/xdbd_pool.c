@@ -18,7 +18,7 @@ cache_alloc(xdbd_pool_t *pool, size_t size)
     cache = bfdev_slist_first_entry(&pool->cache, xdbd_cache_t, list);
     if (bfdev_likely(cache)) {
         retval = bfdev_allocpool_alloc(&cache->pool, size, 0);
-        if (bfdev_likely(cache))
+        if (bfdev_likely(retval))
             return retval;
     }
 
@@ -27,8 +27,10 @@ cache_alloc(xdbd_pool_t *pool, size_t size)
         return NULL;
 
     retval = bfdev_malloc(NULL, XDBD_PAGE_SIZE);
-    if (bfdev_unlikely(!retval))
+    if (bfdev_unlikely(!retval)) {
+        bfdev_free(NULL, cache);
         return NULL;
+    }
 
     cache->data = retval;
     bfdev_allocpool_init(&cache->pool, retval, XDBD_PAGE_SIZE);
@@ -53,8 +55,10 @@ block_alloc(xdbd_pool_t *pool, size_t size)
         return NULL;
 
     retval = bfdev_malloc(NULL, size);
-    if (bfdev_unlikely(!retval))
+    if (bfdev_unlikely(!retval)) {
+        bfdev_free(NULL, block);
         return NULL;
+    }
 
     block->data = retval;
     bfdev_slist_add(&pool->block, &block->list);
