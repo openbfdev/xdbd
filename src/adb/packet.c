@@ -388,7 +388,11 @@ void xdbd_dump_adb_packet(xdbd_pool_t *pool, const xdbd_adb_packet_t *p) {
     hex_payload.size = xdbd_buf_size(p->payload);
 
     payload = xdbd_dump_hex(pool, hex_payload);
-
+    if (payload == NULL) {
+        // bfdev_log_debug("payload is null\n");
+        // return;
+    }
+    bfdev_log_debug("%p", payload);
     bfdev_log_debug("%.*s\n", (int)xdbd_buf_size(payload), payload->pos);
     return;
 }

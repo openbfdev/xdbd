@@ -6,10 +6,9 @@
 #include <xdbd.h>
 #include <bfdev/align.h>
 #include <bfdev/bug.h>
+#include <string.h>
 
-static inline void *
-cache_alloc(xdbd_pool_t *pool, size_t size)
-{
+static inline void *cache_alloc(xdbd_pool_t *pool, size_t size) {
     xdbd_cache_t *cache;
     void *retval;
 
@@ -42,9 +41,7 @@ cache_alloc(xdbd_pool_t *pool, size_t size)
     return retval;
 }
 
-static inline void *
-block_alloc(xdbd_pool_t *pool, size_t size)
-{
+static inline void *block_alloc(xdbd_pool_t *pool, size_t size) {
     xdbd_block_t *block;
     void *retval;
 
@@ -66,18 +63,25 @@ block_alloc(xdbd_pool_t *pool, size_t size)
     return retval;
 }
 
-void *
-xdbd_palloc(xdbd_pool_t *pool, size_t size)
-{
+void *xdbd_palloc(xdbd_pool_t *pool, size_t size) {
     if (size < XDBD_PAGE_SIZE)
         return cache_alloc(pool, size);
 
     return block_alloc(pool, size);
 }
 
-xdbd_pool_t *
-xdbd_create_pool()
-{
+void *xdbd_pcalloc(xdbd_pool_t *pool, size_t size) {
+    void *p;
+    p = xdbd_palloc(pool, size);
+    if (p == NULL) {
+        return NULL;
+    }
+
+    xdbd_memzero(p, size);
+    return p;
+}
+
+xdbd_pool_t *xdbd_create_pool() {
     xdbd_pool_t *pool;
 
     pool = bfdev_malloc(NULL, sizeof(*pool));
@@ -90,9 +94,7 @@ xdbd_create_pool()
     return pool;
 }
 
-void
-xdbd_release_pool(xdbd_pool_t *pool)
-{
+void xdbd_release_pool(xdbd_pool_t *pool) {
     xdbd_cache_t *cache, *tcache;
     xdbd_block_t *block, *tblock;
 
@@ -110,9 +112,7 @@ xdbd_release_pool(xdbd_pool_t *pool)
     bfdev_slist_head_init(&pool->block);
 }
 
-void
-xdbd_destroy_pool(xdbd_pool_t *pool)
-{
+void xdbd_destroy_pool(xdbd_pool_t *pool) {
     xdbd_release_pool(pool);
     bfdev_free(NULL, pool);
 }

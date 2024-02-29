@@ -5,7 +5,7 @@
 xdbd_adb_request_t *xdbd_adb_create_request(xdbd_connection_t *c) {
     xdbd_adb_request_t *r;
 
-    r = xdbd_palloc(c->pool, sizeof(xdbd_adb_request_t));
+    r = xdbd_pcalloc(c->pool, sizeof(xdbd_adb_request_t));
     if (r == NULL) {
         return NULL;
     }

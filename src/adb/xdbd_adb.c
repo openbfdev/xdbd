@@ -66,7 +66,7 @@ int xdbd_adb_parse_adb_header(xdbd_adb_request_t *r, xdbd_buf_t *b) {
 
     xdbd_memcpy(&r->h, b->start, sizeof(xdbd_adb_header_t));
 
-    r->p = xdbd_palloc(r->temp_pool, sizeof(xdbd_adb_packet_t));
+    r->p = xdbd_pcalloc(r->temp_pool, sizeof(xdbd_adb_packet_t));
     if (r->p == NULL) {
         return XDBD_ERR;
     }

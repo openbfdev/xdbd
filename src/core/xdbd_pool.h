@@ -39,16 +39,10 @@ struct xdbd_block {
     void *data;
 };
 
-extern __bfdev_malloc void *
-xdbd_palloc(xdbd_pool_t *pool, size_t size);
-
-extern xdbd_pool_t *
-xdbd_create_pool();
-
-extern void
-xdbd_release_pool(xdbd_pool_t *pool);
-
-extern void
-xdbd_destroy_pool(xdbd_pool_t *pool);
+__bfdev_malloc void *xdbd_palloc(xdbd_pool_t *pool, size_t size);
+void *xdbd_pcalloc(xdbd_pool_t *pool, size_t size);
+xdbd_pool_t *xdbd_create_pool();
+void xdbd_release_pool(xdbd_pool_t *pool);
+void xdbd_destroy_pool(xdbd_pool_t *pool);
 
 #endif  /*__XDBD_POOL__H__*/
