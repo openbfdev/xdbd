@@ -64,6 +64,11 @@ static inline void *block_alloc(xdbd_pool_t *pool, size_t size) {
 }
 
 void *xdbd_palloc(xdbd_pool_t *pool, size_t size) {
+    if (bfdev_unlikely(!size)) {
+        bfdev_log_alert("malloc zero !!!\n");
+        return NULL;
+    }
+
     if (size < XDBD_PAGE_SIZE)
         return cache_alloc(pool, size);
 
