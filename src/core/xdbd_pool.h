@@ -7,7 +7,6 @@
 #define __XDBD_POOL__H__
 
 #include <stddef.h>
-#include <stdint.h>
 #include <bfdev/allocator.h>
 #include <bfdev/allocpool.h>
 #include <bfdev/slist.h>
