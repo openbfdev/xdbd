@@ -57,25 +57,17 @@ size_t xdbd_adb_read_adb_header(xdbd_adb_request_t *r) {
 
 int xdbd_adb_parse_adb_header(xdbd_adb_request_t *r, xdbd_buf_t *b) {
     ssize_t n;
-
+    xdbd_adb_packet_t *p;
     n = xdbd_buf_size(b);
 
     if (n < sizeof(xdbd_adb_header_t)) {
         return XDBD_AGAIN;
     }
 
+    p = r->p;
+
     xdbd_memcpy(&r->h, b->start, sizeof(xdbd_adb_header_t));
-
-    r->p = xdbd_pcalloc(r->temp_pool, sizeof(xdbd_adb_packet_t));
-    if (r->p == NULL) {
-        return XDBD_ERR;
-    }
-
-    r->p->payload = xdbd_create_buf(r->temp_pool, r->h.dlen);
-    if (r->p->payload == NULL) {
-        return XDBD_ERR;
-    }
-
+    p->header = r->h;
 
     r->buffer->pos += sizeof(xdbd_adb_header_t);
     return XDBD_OK;
@@ -123,8 +115,6 @@ size_t xdbd_adb_read_adb_payload(xdbd_adb_request_t *r) {
 }
 
 int xdbd_adb_parse_adb_payload(xdbd_adb_request_t *r, xdbd_buf_t *b) {
-    r->p->header = r->h;
-
     xdbd_buf_append_buf(r->p->payload, r->pool, b);
 
     xdbd_dump_adb_packet(r->pool, r->p);
