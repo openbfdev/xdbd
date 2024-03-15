@@ -253,21 +253,10 @@ int xdbd_process_write_packet(xdbd_adb_request_t *r, xdbd_adb_packet_t *p) {
         return XDBD_ERR;
     }
 
-    xdbd_okey_packet(r, out);
-    xdbd_buf_append_mem(r->out, r->pool, &out->header, sizeof(xdbd_adb_header_t));
-    xdbd_buf_append_buf(r->out, r->pool, out->payload);
-
-    c->send(c, r->out->pos, xdbd_buf_size(r->out));
-
-    xdbd_reset_buf(out->payload);
-    xdbd_reset_buf(r->out);
     xdbd_write_packet(r, out, &t_data);
 
     xdbd_buf_append_mem(r->out, r->pool, &out->header, sizeof(xdbd_adb_header_t));
     xdbd_buf_append_buf(r->out, r->pool, out->payload);
-
-    c->send(c, r->out->pos, xdbd_buf_size(r->out));
-    xdbd_reset_buf(r->out);
 
     return XDBD_OK;
 }
