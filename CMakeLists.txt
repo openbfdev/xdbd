@@ -33,6 +33,8 @@ set(
     ${PROJECT_SOURCE_DIR}/src/event/
     ${PROJECT_SOURCE_DIR}/src/connection/
     ${PROJECT_SOURCE_DIR}/src/core/
+    #FIXME: check platform
+    ${PROJECT_SOURCE_DIR}/src/os/unix/
 )
 
 include_directories(${XADB_INCLUDES})
